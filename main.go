@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/toqueteos/webbrowser"
+	"github.com/abbot/go-http-auth"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var (
@@ -21,6 +23,8 @@ var (
 	documentPath = flag.String("f", "api-spec.yaml", "the full path to the document being edited")
 	backendPort  = flag.String("p", "8765", "port for editor's http backend")
 	editorPath   = flag.String("se", "builtin", "the full path to swagger-editor installation")
+	authName     = flag.String("u", "admin", "username for web authentication")
+	authPass     = flag.String("k", "admin", "password for web authentication")
 )
 
 type document struct {
@@ -107,7 +111,7 @@ func (doc *document) save() error {
 	return nil
 }
 
-func handleBackend(w http.ResponseWriter, r *http.Request) {
+func handleBackend(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
 	switch r.Method {
 	case http.MethodGet:
 		doc.RLock()
@@ -129,7 +133,7 @@ func handleBackend(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleApp(w http.ResponseWriter, r *http.Request) {
+func handleApp(w http.ResponseWriter, r *auth.AuthenticatedRequest) {
 	path := r.URL.Path
 	if path == "/" {
 		path = "/index.html"
@@ -154,13 +158,23 @@ func handleApp(w http.ResponseWriter, r *http.Request) {
 
 	w.Write(data)
 }
+	
+func handleAuth(user, realm string) string {
+        if user == *authName {
+                password := []byte(*authPass)
+		encrypted, _ := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
+		return string(encrypted)
+        }
+        return ""
+}
 
 func main() {
 	webbrowser.Open("http://localhost:" + *backendPort)
 
-	http.HandleFunc("/backend", handleBackend)
+	authenticator := auth.NewBasicAuthenticator("Swagger Web", handleAuth)
+	http.HandleFunc("/backend", authenticator.Wrap(handleBackend))
 	if *editorPath == "builtin" {
-		http.HandleFunc("/", handleApp)
+		http.HandleFunc("/", authenticator.Wrap(handleApp))
 	} else {
 		http.Handle("/", http.FileServer(http.Dir(*editorPath)))
 	}
