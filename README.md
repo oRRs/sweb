@@ -4,7 +4,7 @@ Swagger Editor Backend
 ## Installation
 
 ```
-go get -u github.com/zgiber/sweb
+go get -u github.com/oRRs/sweb
 ```
 
 ## usage
@@ -17,6 +17,10 @@ Usage of sweb:
     	port for editor's http backend (default "8765")
   -se string
     	the full path to swagger-editor installation (default "builtin")
+  -u string
+      username for web authentication (default "admin")
+  -k string
+      password for web authentication (default "admin")
 ```
 
 ### Important stuff
