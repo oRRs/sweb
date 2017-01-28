@@ -92,6 +92,13 @@ func (doc *document) save() error {
 	if err != nil {
 		return err
 	}
+	
+	g, err2 := os.Create(doc.path + "_" + time.Now().Format("201701010101"))
+        if err2 != nil {
+                return err2
+        }
+        defer g.Close()
+        g.Write(doc.buf.Bytes())
 
 	doc.saved = true
 	doc.RUnlock()
